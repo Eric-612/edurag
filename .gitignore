@@ -1,0 +1,37 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 配置文件（包含敏感信息，不推）
+config.ini
+.env
+
+# 日志文件
+logs/
+*.log
+
+# 大模型文件（太大，推不上去，用模型名下载即可）
+rag_qa/models/
+rag_qa/nlp_bert_document-segmentation_chinese-base/
+rag_qa/core/bert_query_classifier/model.safetensors
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.bak

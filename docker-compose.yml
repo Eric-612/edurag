@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库 - 存储 FAQ 问答对和对话历史
+  mysql:
+    image: mysql:8.0
+    container_name: edurag-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: subjects_kg
+      MYSQL_CHARSET: utf8mb4
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - edurag-network
+
+  # Redis - 缓存 FAQ 答案和 BM25 分词结果
+  redis:
+    image: redis:7-alpine
+    container_name: edurag-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass 1234
+    volumes:
+      - redis_data:/data
+    networks:
+      - edurag-network
+
+  # Milvus - 向量数据库（单节点版）
+  milvus:
+    image: milvusdb/milvus:v2.4.0
+    container_name: edurag-milvus
+    restart: always
+    command: ["milvus", "run", "standalone"]
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    volumes:
+      - milvus_data:/var/lib/milvus
+    networks:
+      - edurag-network
+
+  # Milvus 依赖 - etcd
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: edurag-etcd
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+    volumes:
+      - etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - edurag-network
+
+  # Milvus 依赖 - MinIO
+  milvus-minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: edurag-minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data
+    networks:
+      - edurag-network
+
+volumes:
+  mysql_data:
+  redis_data:
+  milvus_data:
+  etcd_data:
+  minio_data:
+
+networks:
+  edurag-network:
+    driver: bridge
